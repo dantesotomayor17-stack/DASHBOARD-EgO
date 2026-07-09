@@ -701,8 +701,9 @@ const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
 
 // ─── STATE ───────────────────────────────────────────────────────────
-let allSheetRows  = [];   // raw rows from Google Sheets
+let allSheetRows  = [];   // raw rows from Google Sheets (movimientos)
 let allFirebaseDocs = []; // raw docs from Firebase
+let tallerIndexRows = [];  // filas desde "Índice de Estadía de Unidades en Taller"
 let filterDate = "";
 let filterRuta = "";
 let filterTipo = "";
@@ -744,6 +745,25 @@ async function fetchSheetsData() {
 
     buildRutasFilter();
     renderAll();
+}
+
+// ─── TALLER INDEX FETCH (hoja dedicada) ──────────────────────────────
+async function fetchTallerIndex() {
+    try {
+        const url = SHEETS_WEBAPP_URL + "?action=getTaller";
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && Array.isArray(data.rows)) {
+            tallerIndexRows = data.rows;
+        } else {
+            throw new Error("No rows en índice de taller");
+        }
+    } catch (e) {
+        console.warn("No se pudo leer el índice de taller:", e);
+        tallerIndexRows = [];
+    }
+    renderTallerTable();
+    renderKPIs();
 }
 
 // ─── FIREBASE LISTENER ──────────────────────────────────────────────
@@ -832,11 +852,10 @@ function renderKPIs() {
     const salidasHoy = rows.filter(r => r.movimiento === "SALIDA" && (r.fecha || "").slice(0,10) === today).length;
     document.getElementById('kpi-salidas').textContent = salidasHoy;
 
-    // Unidades en taller: se calcula sobre TODO el historial (no solo el filtro de fecha),
-    // porque una unidad pudo haber entrado ayer o antes y seguir en el taller hoy.
-    const tallerUnidades = calcUnidadesEnTaller(getTallerRows());
-    document.getElementById('kpi-taller').textContent = tallerUnidades.length;
-    document.getElementById('taller-count').textContent = tallerUnidades.length;
+    // Unidades en taller: ahora viene directo de tu hoja índice dedicada,
+    // ya no se deduce cruzando entradas/salidas (mucho más confiable).
+    document.getElementById('kpi-taller').textContent = tallerIndexRows.length;
+    document.getElementById('taller-count').textContent = tallerIndexRows.length;
 
     // Firebase KPIs
     const pendientes  = allFirebaseDocs.filter(d => d.estatus === "PROGRAMADO").length;
@@ -855,9 +874,15 @@ function calcUnidadesEnTaller(rows) {
         byUnit[r.unidad].push(r);
     });
     const enTaller = [];
+    const TALLER_MAX_DIAS = 30; // más allá de esto, asumimos que es un registro viejo sin SALIDA capturada
+    const cutoff = Date.now() - (TALLER_MAX_DIAS * 24 * 60 * 60 * 1000);
     Object.entries(byUnit).forEach(([unit, entries]) => {
         entries.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
-        if (entries[0].movimiento === "ENTRADA") enTaller.push(entries[0]);
+        const latest = entries[0];
+        if (latest.movimiento !== "ENTRADA") return;
+        // Sin fecha válida o entrada demasiado antigua sin salida registrada: la ignoramos
+        if (!latest.timestamp || latest.timestamp < cutoff) return;
+        enTaller.push(latest);
     });
     return enTaller;
 }
@@ -905,8 +930,7 @@ function renderTimeline() {
 let tallerData = [];
 
 function renderTallerTable() {
-    const rows = getTallerRows();
-    tallerData = calcUnidadesEnTaller(rows);
+    tallerData = tallerIndexRows;
     renderTallerRows(tallerData);
     document.getElementById('taller-loading').style.display = 'none';
     document.getElementById('taller-table').style.display = 'table';
@@ -919,15 +943,13 @@ function renderTallerRows(data) {
     if (data.length === 0) { empty.style.display = 'block'; document.getElementById('taller-table').style.display = 'none'; return; }
     empty.style.display = 'none'; document.getElementById('taller-table').style.display = 'table';
 
-    const now = Date.now();
     data.forEach(r => {
         const tr = document.createElement('tr');
-        const km = r.km ? parseInt(r.km).toLocaleString('es-MX') : '—';
+        const km = r.km ? Number(r.km).toLocaleString('es-MX') : '—';
         const manto = r.manto && r.manto !== 'N/A' ? r.manto : '—';
-        const ms = r.timestamp ? now - r.timestamp : 0;
-        const hrs = ms ? Math.floor(ms / 3600000) : null;
-        const tiempoStr = hrs !== null ? (hrs < 1 ? '< 1 h' : hrs + ' h') : '—';
-        const urgency = hrs && hrs > 24 ? 'badge-red' : hrs && hrs > 8 ? 'badge-orange' : 'badge-green';
+        const dias = r.diasEstadia || 0;
+        const tiempoStr = r.tiempoTexto || '—';
+        const urgency = dias > 30 ? 'badge-red' : dias > 7 ? 'badge-orange' : 'badge-green';
         const mantoColor = manto !== '—' ? (manto === 'CORRECTIVO' ? 'badge-red' : 'badge-blue') : '';
 
         tr.innerHTML = `
@@ -935,7 +957,7 @@ function renderTallerRows(data) {
             <td style="font-size:11px;">${r.ruta || '—'}</td>
             <td style="font-family:var(--jm); font-size:12px;">${km}</td>
             <td><span class="badge ${mantoColor}">${manto}</span></td>
-            <td><span class="badge ${urgency}">${tiempoStr}</span></td>
+            <td><span class="badge ${urgency}" title="${tiempoStr}">${tiempoStr}</span></td>
         `;
         tr.style.cursor = 'pointer';
         tr.onclick = () => openDetailModal(r);
@@ -1030,11 +1052,19 @@ function renderMantoChart() {
 
 // ─── MODAL ──────────────────────────────────────────────────────────
 window.openDetailModal = function(r) {
+    const esTallerIndex = r.tiempoTexto !== undefined;
     const tipo = (r.movimiento || 'ENTRADA').toUpperCase();
-    document.getElementById('modal-title').textContent = `Unidad ${r.unidad || '—'} — ${tipo}`;
-    const km = r.km ? parseInt(r.km).toLocaleString('es-MX') : '—';
-    const fecha = r.fecha ? r.fecha.slice(0,10) : '—';
-    const rows = [
+    document.getElementById('modal-title').textContent = `Unidad ${r.unidad || '—'}${esTallerIndex ? ' — En Taller' : ' — ' + tipo}`;
+    const km = r.km ? Number(r.km).toLocaleString('es-MX') : '—';
+    const fecha = esTallerIndex ? (r.fechaEntrada ? String(r.fechaEntrada).slice(0,10) : '—') : (r.fecha ? r.fecha.slice(0,10) : '—');
+    const rows = esTallerIndex ? [
+        ['Ruta', r.ruta || '—'],
+        ['Kilometraje', km + ' km'],
+        ['Mantenimiento', r.manto || '—'],
+        ['Fecha de entrada', fecha],
+        ['Tiempo en taller', r.tiempoTexto || '—'],
+        ['Comentarios', r.comentarios || '—'],
+    ] : [
         ['Ruta', r.ruta || '—'],
         ['Kilometraje', km + ' km'],
         ['Mantenimiento', r.manto || '—'],
@@ -1077,8 +1107,10 @@ filterDate = todayStr();
 // ─── BOOT ────────────────────────────────────────────────────────────
 listenFirebase();
 fetchSheetsData();
+fetchTallerIndex();
 // Refresh Sheets every 2 minutes
 setInterval(fetchSheetsData, 120000);
+setInterval(fetchTallerIndex, 120000);
 </script>
 
 <!-- INSTRUCTIONS BANNER (shown when Sheets is offline) -->
