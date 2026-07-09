@@ -791,6 +791,15 @@ function getFilteredRows() {
     });
 }
 
+// Para "Unidades en Taller" NO filtramos por fecha: una unidad puede haber
+// entrado cualquier día anterior y seguir en el taller. Solo respeta el filtro de ruta.
+function getTallerRows() {
+    return allSheetRows.filter(r => {
+        if (filterRuta && r.ruta !== filterRuta) return false;
+        return true;
+    });
+}
+
 function todayStr() {
     return new Date().toISOString().slice(0, 10);
 }
@@ -823,8 +832,9 @@ function renderKPIs() {
     const salidasHoy = rows.filter(r => r.movimiento === "SALIDA" && (r.fecha || "").slice(0,10) === today).length;
     document.getElementById('kpi-salidas').textContent = salidasHoy;
 
-    // Unidades en taller: tienen ENTRADA sin SALIDA posterior
-    const tallerUnidades = calcUnidadesEnTaller(rows);
+    // Unidades en taller: se calcula sobre TODO el historial (no solo el filtro de fecha),
+    // porque una unidad pudo haber entrado ayer o antes y seguir en el taller hoy.
+    const tallerUnidades = calcUnidadesEnTaller(getTallerRows());
     document.getElementById('kpi-taller').textContent = tallerUnidades.length;
     document.getElementById('taller-count').textContent = tallerUnidades.length;
 
@@ -895,7 +905,7 @@ function renderTimeline() {
 let tallerData = [];
 
 function renderTallerTable() {
-    const rows = getFilteredRows();
+    const rows = getTallerRows();
     tallerData = calcUnidadesEnTaller(rows);
     renderTallerRows(tallerData);
     document.getElementById('taller-loading').style.display = 'none';
