@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EGO PRO — Dashboard Central</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --ego-green: #10c86f;
+            --ego-green-dark: #0ca85c;
+            --ego-orange: #ff6d01;
+            --ego-blue: #1a73e8;
+            --ink: #0d1117;
+            --ink-mid: #3a4150;
+            --ink-light: #6b7280;
+            --surface: #f7f8fa;
+            --card: #ffffff;
+            --border: #e5e7eb;
+            --entry: #d1fae5;
+            --exit: #fee2e2;
+            --entry-text: #065f46;
+            --exit-text: #991b1b;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--surface);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        /* ── TOP NAV ── */
+        .topbar {
+            background: var(--ink);
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 58px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 2px solid var(--ego-green);
+        }
+        .topbar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .topbar-logo img {
+            height: 34px;
+            object-fit: contain;
+            filter: brightness(1.1);
+        }
+        .topbar-brand {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--ego-green);
+            text-transform: uppercase;
+        }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .clock {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: #9ca3af;
+            letter-spacing: 1px;
+        }
+        .live-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--ego-green);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.4); }
+        }
+
+        /* ── LAYOUT ── */
+        .main { max-width: 1380px; margin: 0 auto; padding: 28px 24px 60px; }
+
+        .page-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-title {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--ink);
+        }
+        .page-title span { color: var(--ego-green); }
+        .page-sub {
+            font-size: 13px;
+            color: var(--ink-light);
+            margin-top: 3px;
+            font-weight: 400;
+        }
+
+        /* ── FILTER BAR ── */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+        }
+        .filter-bar label { font-size: 12px; font-weight: 600; color: var(--ink-mid); }
+        .filter-bar select, .filter-bar input {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 13px;
+            color: var(--ink);
+            background: var(--surface);
+            outline: none;
+        }
+        .filter-bar select:focus, .filter-bar input:focus { border-color: var(--ego-green); }
+        .filter-sep { height: 24px; width: 1px; background: var(--border); }
+
+        /* ── KPI GRID ── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+        .kpi-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px 20px;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow .15s;
+        }
+        .kpi-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            border-radius: 12px 0 0 12px;
+        }
+        .kpi-card.green::after { background: var(--ego-green); }
+        .kpi-card.orange::after { background: var(--ego-orange); }
+        .kpi-card.blue::after { background: var(--ego-blue); }
+        .kpi-card.red::after { background: #ef4444; }
+        .kpi-card.purple::after { background: #8b5cf6; }
+        .kpi-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--ink-light);
+            margin-bottom: 6px;
+        }
+        .kpi-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--ink);
+            line-height: 1;
+        }
+        .kpi-sub { font-size: 11px; color: var(--ink-light); margin-top: 6px; }
+        .kpi-icon {
+            position: absolute;
+            right: 14px; top: 14px;
+            font-size: 22px;
+            opacity: .18;
+        }
+
+        /* ── TWO COL LAYOUT ── */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* ── PANEL ── */
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fafafa;
+        }
+        .panel-title {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .5px;
+            color: var(--ink);
+            text-transform: uppercase;
+        }
+        .panel-badge {
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2px 10px;
+            color: var(--ink-mid);
+        }
+        .panel-body { padding: 16px 20px; }
+
+        /* ── TIMELINE ── */
+        .timeline { list-style: none; }
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .timeline-item:last-child { border-bottom: none; }
+        .tl-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 20px;
+            white-space: nowrap;
+            letter-spacing: .5px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .tl-badge.entrada { background: var(--entry); color: var(--entry-text); }
+        .tl-badge.salida  { background: var(--exit);  color: var(--exit-text); }
+        .tl-info { flex: 1; min-width: 0; }
+        .tl-unit { font-size: 13px; font-weight: 700; }
+        .tl-route { font-size: 11px; color: var(--ink-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tl-meta { font-size: 11px; color: var(--ink-light); text-align: right; flex-shrink: 0; }
+        .tl-km { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ego-blue); font-weight: 600; }
+        .tl-manto { font-size: 10px; background: #eff6ff; color: var(--ego-blue); border: 1px solid #bfdbfe; border-radius: 10px; padding: 1px 6px; margin-top: 2px; display: inline-block; }
+
+        /* ── TABLE ── */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th {
+            text-align: left;
+            padding: 8px 12px;
+            background: #fafafa;
+            border-bottom: 2px solid var(--border);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--ink-mid);
+        }
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--ink);
+        }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover td { background: #f9fafb; }
+        .badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            letter-spacing: .3px;
+        }
+        .badge-green { background: var(--entry); color: var(--entry-text); }
+        .badge-orange { background: #fff7ed; color: #92400e; border: 1px solid #fed7aa; }
+        .badge-blue { background: #eff6ff; color: #1e40af; }
+        .badge-red { background: var(--exit); color: var(--exit-text); }
+        .badge-purple { background: #f5f3ff; color: #5b21b6; }
+
+        /* ── CHART BAR ── */
+        .chart-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .chart-label { font-size: 12px; font-weight: 600; width: 90px; flex-shrink: 0; }
+        .chart-track {
+            flex: 1;
+            height: 22px;
+            background: var(--surface);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .chart-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s cubic-bezier(.4,0,.2,1);
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            color: white;
+        }
+        .chart-count { font-size: 12px; font-weight: 700; width: 28px; text-align: right; color: var(--ink-mid); }
+
+        /* ── ACTION BUTTONS ── */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            background: var(--card);
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--ink);
+            transition: all .15s;
+        }
+        .action-btn:hover { border-color: var(--ego-green); background: #f0fdf4; transform: translateY(-1px); }
+        .action-btn .icon { font-size: 20px; margin-bottom: 2px; }
+        .action-btn .ab-title { font-size: 12px; font-weight: 700; }
+        .action-btn .ab-sub { font-size: 10px; color: var(--ink-light); }
+
+        /* ── SEARCH ── */
+        .search-box {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            margin-bottom: 14px;
+        }
+        .search-box:focus { border-color: var(--ego-green); }
+
+        /* ── DONUT LEGEND ── */
+        .legend { list-style: none; }
+        .legend li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            padding: 5px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .legend li:last-child { border-bottom: none; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .legend-name { flex: 1; font-weight: 500; }
+        .legend-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-mid); }
+
+        /* ── EMPTY ── */
+        .empty { text-align: center; padding: 40px 20px; color: var(--ink-light); font-size: 13px; }
+        .empty-icon { font-size: 36px; margin-bottom: 8px; opacity: .4; }
+
+        /* ── LOADING ── */
+        .loading { text-align: center; padding: 30px; }
+        .spinner {
+            width: 28px; height: 28px;
+            border: 3px solid var(--border);
+            border-top-color: var(--ego-green);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── STATUS LINE ── */
+        .status-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--ink-light);
+            padding: 10px 20px;
+            background: #fafafa;
+            border-top: 1px solid var(--border);
+        }
+        .status-ok { color: var(--ego-green); font-weight: 600; }
+        .status-err { color: #ef4444; font-weight: 600; }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 28px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25);
+        }
+        .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 16px; }
+        .modal-row { margin-bottom: 10px; font-size: 13px; }
+        .modal-label { font-weight: 600; color: var(--ink-light); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+        .modal-val { font-weight: 600; }
+        .modal-close {
+            margin-top: 20px;
+            padding: 10px 24px;
+            background: var(--ink);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .modal-close:hover { background: #1f2937; }
+    </style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topbar">
+    <div class="topbar-logo">
+        <img src="https://res.cloudinary.com/dygb7qjgt/image/upload/v1776721918/WhatsApp_Image_2026-04-20_at_11.10.30_AM_bipr97.jpg" alt="EGO">
+        <span class="topbar-brand">Dashboard Central</span>
+    </div>
+    <div class="topbar-right">
+        <div class="live-dot"></div>
+        <span class="clock" id="clockEl">--:--:--</span>
+    </div>
+</nav>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+        <div class="modal-title" id="modal-title">Detalle de Unidad</div>
+        <div id="modal-body"></div>
+        <button class="modal-close" onclick="closeModal()">Cerrar</button>
+    </div>
+</div>
+
+<div class="main">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div>
+            <div class="page-title">Centro de Control <span>EGO</span></div>
+            <div class="page-sub" id="dateLabel">Cargando fecha...</div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="https://dantesotomayor17-stack.github.io/gestion-servicios-ego/" target="_blank" class="action-btn" style="flex-direction:row; align-items:center; gap:8px; padding:10px 16px;">
+                <span>📋</span><span class="ab-title">GESTIÓN DE SERVICIOS</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="filter-bar">
+        <label>FECHA</label>
+        <input type="date" id="filterDate">
+        <div class="filter-sep"></div>
+        <label>RUTA</label>
+        <select id="filterRuta">
+            <option value="">Todas</option>
+        </select>
+        <div class="filter-sep"></div>
+        <label>TIPO</label>
+        <select id="filterTipo">
+            <option value="">Todos</option>
+            <option value="ENTRADA">Entrada</option>
+            <option value="SALIDA">Salida</option>
+        </select>
+        <div class="filter-sep"></div>
+        <button onclick="applyFilters()" style="padding:6px 14px; background:var(--ego-green); color:white; border:none; border-radius:6px; font-family:inherit; font-weight:700; font-size:13px; cursor:pointer;">Aplicar</button>
+        <button onclick="clearFilters()" style="padding:6px 12px; background:transparent; color:var(--ink-light); border:1px solid var(--border); border-radius:6px; font-family:inherit; font-size:13px; cursor:pointer;">Limpiar</button>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid">
+        <div class="kpi-card green">
+            <div class="kpi-icon">🚌</div>
+            <div class="kpi-label">Unidades en Taller</div>
+            <div class="kpi-value" id="kpi-taller">—</div>
+            <div class="kpi-sub">Con entrada sin salida</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-icon">📥</div>
+            <div class="kpi-label">Entradas del Día</div>
+            <div class="kpi-value" id="kpi-entradas">—</div>
+            <div class="kpi-sub" id="kpi-entradas-sub">hoy</div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-icon">📤</div>
+            <div class="kpi-label">Salidas del Día</div>
+            <div class="kpi-value" id="kpi-salidas">—</div>
+            <div class="kpi-sub" id="kpi-salidas-sub">hoy</div>
+        </div>
+        <div class="kpi-card orange">
+            <div class="kpi-icon">🔧</div>
+            <div class="kpi-label">Servicios Pendientes</div>
+            <div class="kpi-value" id="kpi-pendientes">—</div>
+            <div class="kpi-sub">Hojas programadas</div>
+        </div>
+        <div class="kpi-card purple">
+            <div class="kpi-icon">✅</div>
+            <div class="kpi-label">Servicios Completados</div>
+            <div class="kpi-value" id="kpi-completados">—</div>
+            <div class="kpi-sub">Total histórico</div>
+        </div>
+    </div>
+
+    <!-- MIDDLE ROW -->
+    <div class="grid-3">
+        <!-- TIMELINE -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Actividad Reciente</span>
+                <span class="panel-badge" id="timeline-count">0 registros</span>
+            </div>
+            <div class="panel-body" style="padding:0; max-height:420px; overflow-y:auto;">
+                <div id="timeline-loading" class="loading"><div class="spinner"></div><div style="font-size:12px; color:var(--ink-light);">Conectando a Google Sheets...</div></div>
+                <ul class="timeline" id="timeline-list"></ul>
+                <div id="timeline-empty" class="empty" style="display:none;"><div class="empty-icon">📭</div>Sin registros para el filtro seleccionado.</div>
+            </div>
+            <div class="status-line">
+                <span id="sheets-status" class="status-ok">⬤ Google Sheets</span>
+                <span id="sheets-last-update">—</span>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div style="display:flex; flex-direction:column; gap:18px;">
+
+            <!-- MANTO DISTRIBUTION -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Paquetes de Mantenimiento</span>
+                </div>
+                <div class="panel-body">
+                    <div id="manto-chart"><div class="loading"><div class="spinner"></div></div></div>
+                </div>
+            </div>
+
+            <!-- QUICK ACTIONS -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Acciones Rápidas</span>
+                </div>
+                <div class="panel-body">
+                    <div class="action-grid">
+                        <a href="https://dantesotomayor17-stack.github.io/Sistema-EGO/" target="_blank" class="action-btn">
+                            <span class="icon">📥</span>
+                            <span class="ab-title">Registrar Entrada</span>
+                            <span class="ab-sub">Sistema EGO PRO</span>
+                        </a>
+                        <a href="https://dantesotomayor17-stack.github.io/Sistema-EGO/" target="_blank" class="action-btn">
+                            <span class="icon">📤</span>
+                            <span class="ab-title">Registrar Salida</span>
+                            <span class="ab-sub">Sistema EGO PRO</span>
+                        </a>
+                        <a href="https://dantesotomayor17-stack.github.io/gestion-servicios-ego/" target="_blank" class="action-btn">
+                            <span class="icon">📋</span>
+                            <span class="ab-title">Nueva Hoja de Servicio</span>
+                            <span class="ab-sub">Gestión de Servicios</span>
+                        </a>
+                        <a href="https://dantesotomayor17-stack.github.io/gestion-servicios-ego/" target="_blank" class="action-btn">
+                            <span class="icon">📊</span>
+                            <span class="ab-title">Ver Historial</span>
+                            <span class="ab-sub">Pestaña "Historial de Registros"</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div class="grid-2">
+
+        <!-- UNIDADES EN TALLER TABLE -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Unidades en Taller</span>
+                <span class="panel-badge" id="taller-count">0</span>
+            </div>
+            <div class="panel-body" style="padding:0;">
+                <div style="padding:12px 16px; border-bottom:1px solid var(--border);">
+                    <input type="text" class="search-box" style="margin:0;" id="tallerSearch" placeholder="Buscar unidad o ruta..." oninput="filterTallerTable()">
+                </div>
+                <div style="max-height:340px; overflow-y:auto;">
+                    <div id="taller-loading" class="loading"><div class="spinner"></div></div>
+                    <table class="data-table" id="taller-table" style="display:none;">
+                        <thead>
+                            <tr>
+                                <th>Unidad</th>
+                                <th>Ruta</th>
+                                <th>KM Entrada</th>
+                                <th>Manto</th>
+                                <th>Tiempo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="taller-body"></tbody>
+                    </table>
+                    <div id="taller-empty" class="empty" style="display:none;"><div class="empty-icon">✅</div>No hay unidades en taller.</div>
+                </div>
+            </div>
+            <div class="status-line">
+                <span id="taller-status" class="status-ok">⬤ Datos actualizados</span>
+                <span id="taller-update">—</span>
+            </div>
+        </div>
+
+        <!-- SERVICIOS PENDIENTES TABLE -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Hojas de Servicio — Estatus</span>
+                <span class="panel-badge" id="servicios-count">0</span>
+            </div>
+            <div class="panel-body" style="padding:0;">
+                <div style="padding:12px 16px; border-bottom:1px solid var(--border);">
+                    <input type="text" class="search-box" style="margin:0;" id="serviciosSearch" placeholder="Buscar económico..." oninput="filterServiciosTable()">
+                </div>
+                <div style="max-height:340px; overflow-y:auto;">
+                    <div id="servicios-loading" class="loading"><div class="spinner"></div></div>
+                    <table class="data-table" id="servicios-table" style="display:none;">
+                        <thead>
+                            <tr>
+                                <th>Eco.</th>
+                                <th>Fecha</th>
+                                <th>Grupo</th>
+                                <th>Estatus</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="servicios-body"></tbody>
+                    </table>
+                    <div id="servicios-empty" class="empty" style="display:none;"><div class="empty-icon">📭</div>Sin registros en Firebase.</div>
+                </div>
+            </div>
+            <div class="status-line">
+                <span id="firebase-status" class="status-ok">⬤ Firebase</span>
+                <span id="firebase-update">—</span>
+            </div>
+        </div>
+    </div>
+
+</div><!-- end main -->
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// ─── CONFIG ───────────────────────────────────────────────────────────
+const firebaseConfig = {
+    apiKey: "AIzaSyDLywqH8iBbnlSwwRFhWVbZ4mjEkz6Xs_8",
+    authDomain: "gestion-servicios-ego.firebaseapp.com",
+    projectId: "gestion-servicios-ego",
+    storageBucket: "gestion-servicios-ego.firebasestorage.app",
+    messagingSenderId: "378018276879",
+    appId: "1:378018276879:web:310b4d30b0d3d4e8c6257a"
+};
+
+const SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzSYGJNO-VSxYa8v0EGYYJVsJy5RPw1rkurLX-jDcFux4WTNBr6JHanINJbSeHkeAlRMw/exec";
+
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
+
+// ─── STATE ───────────────────────────────────────────────────────────
+let allSheetRows  = [];   // raw rows from Google Sheets
+let allFirebaseDocs = []; // raw docs from Firebase
+let filterDate = "";
+let filterRuta = "";
+let filterTipo = "";
+
+// ─── CLOCK ───────────────────────────────────────────────────────────
+function tickClock() {
+    const now = new Date();
+    document.getElementById('clockEl').textContent = now.toLocaleTimeString('es-MX');
+    document.getElementById('dateLabel').textContent =
+        now.toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+// ─── GOOGLE SHEETS FETCH ─────────────────────────────────────────────
+async function fetchSheetsData() {
+    try {
+        // We hit the deployed Apps Script with ?action=getDashboard
+        const url = SHEETS_WEBAPP_URL + "?action=getDashboard";
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data && Array.isArray(data.rows)) {
+            allSheetRows = data.rows;
+            document.getElementById('sheets-status').className = 'status-ok';
+            document.getElementById('sheets-status').textContent = '⬤ Google Sheets';
+            document.getElementById('sheets-last-update').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-MX');
+        } else {
+            throw new Error("No rows");
+        }
+    } catch (e) {
+        // Fallback: use mock data to show the structure, mark status
+        console.warn("Google Sheets fetch failed, using offline mode:", e);
+        document.getElementById('sheets-status').className = 'status-err';
+        document.getElementById('sheets-status').textContent = '⬤ Sheets — Offline (requiere acción en Apps Script)';
+        document.getElementById('sheets-last-update').textContent = 'Ver instrucciones abajo';
+        allSheetRows = getMockSheetData();
+    }
+
+    buildRutasFilter();
+    renderAll();
+}
+
+// ─── FIREBASE LISTENER ──────────────────────────────────────────────
+function listenFirebase() {
+    const ref = collection(db, "servicios");
+    const q   = query(ref, orderBy("timestamp", "desc"));
+    onSnapshot(q, snap => {
+        allFirebaseDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        document.getElementById('firebase-status').className = 'status-ok';
+        document.getElementById('firebase-status').textContent = '⬤ Firebase';
+        document.getElementById('firebase-update').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-MX');
+        renderServiciosTable();
+        renderKPIs();
+        renderMantoChart();
+    }, err => {
+        console.error(err);
+        document.getElementById('firebase-status').className = 'status-err';
+        document.getElementById('firebase-status').textContent = '⬤ Firebase — Error';
+    });
+}
+
+// ─── FILTER HELPERS ──────────────────────────────────────────────────
+window.applyFilters = function() {
+    filterDate = document.getElementById('filterDate').value;
+    filterRuta = document.getElementById('filterRuta').value;
+    filterTipo = document.getElementById('filterTipo').value;
+    renderAll();
+};
+
+window.clearFilters = function() {
+    filterDate = filterRuta = filterTipo = "";
+    document.getElementById('filterDate').value = "";
+    document.getElementById('filterRuta').value = "";
+    document.getElementById('filterTipo').value = "";
+    renderAll();
+};
+
+function getFilteredRows() {
+    return allSheetRows.filter(r => {
+        const rowDate = r.fecha ? r.fecha.slice(0, 10) : "";
+        if (filterDate && rowDate !== filterDate) return false;
+        if (filterRuta && r.ruta !== filterRuta) return false;
+        if (filterTipo && r.movimiento !== filterTipo) return false;
+        return true;
+    });
+}
+
+function todayStr() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function buildRutasFilter() {
+    const rutas = [...new Set(allSheetRows.map(r => r.ruta).filter(Boolean))].sort();
+    const sel = document.getElementById('filterRuta');
+    sel.innerHTML = '<option value="">Todas</option>';
+    rutas.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; sel.appendChild(o); });
+}
+
+// ─── RENDER ALL ──────────────────────────────────────────────────────
+function renderAll() {
+    renderTimeline();
+    renderTallerTable();
+    renderKPIs();
+    renderMantoChart();
+}
+
+// ─── KPI CARDS ───────────────────────────────────────────────────────
+function renderKPIs() {
+    const rows = getFilteredRows();
+    const today = todayStr();
+
+    // Entradas today
+    const entradasHoy = rows.filter(r => r.movimiento === "ENTRADA" && (r.fecha || "").slice(0,10) === today).length;
+    document.getElementById('kpi-entradas').textContent = entradasHoy;
+
+    // Salidas today
+    const salidasHoy = rows.filter(r => r.movimiento === "SALIDA" && (r.fecha || "").slice(0,10) === today).length;
+    document.getElementById('kpi-salidas').textContent = salidasHoy;
+
+    // Unidades en taller: tienen ENTRADA sin SALIDA posterior
+    const tallerUnidades = calcUnidadesEnTaller(rows);
+    document.getElementById('kpi-taller').textContent = tallerUnidades.length;
+    document.getElementById('taller-count').textContent = tallerUnidades.length;
+
+    // Firebase KPIs
+    const pendientes  = allFirebaseDocs.filter(d => d.estatus === "PROGRAMADO").length;
+    const completados = allFirebaseDocs.filter(d => d.estatus === "COMPLETADO").length;
+    document.getElementById('kpi-pendientes').textContent  = pendientes;
+    document.getElementById('kpi-completados').textContent = completados;
+    document.getElementById('servicios-count').textContent  = allFirebaseDocs.length;
+}
+
+function calcUnidadesEnTaller(rows) {
+    // Group by unidad; find those where latest row is ENTRADA
+    const byUnit = {};
+    rows.forEach(r => {
+        if (!r.unidad) return;
+        if (!byUnit[r.unidad]) byUnit[r.unidad] = [];
+        byUnit[r.unidad].push(r);
+    });
+    const enTaller = [];
+    Object.entries(byUnit).forEach(([unit, entries]) => {
+        entries.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+        if (entries[0].movimiento === "ENTRADA") enTaller.push(entries[0]);
+    });
+    return enTaller;
+}
+
+// ─── TIMELINE ────────────────────────────────────────────────────────
+function renderTimeline() {
+    const rows = getFilteredRows().slice(0, 50); // latest 50
+    const list = document.getElementById('timeline-list');
+    const empty = document.getElementById('timeline-empty');
+    const loading = document.getElementById('timeline-loading');
+
+    loading.style.display = 'none';
+    list.innerHTML = '';
+
+    if (rows.length === 0) { empty.style.display = 'block'; document.getElementById('timeline-count').textContent = '0 registros'; return; }
+    empty.style.display = 'none';
+    document.getElementById('timeline-count').textContent = rows.length + ' registros';
+
+    rows.slice(0, 30).forEach(r => {
+        const li = document.createElement('li');
+        li.className = 'timeline-item';
+        const tipo = (r.movimiento || 'ENTRADA').toUpperCase();
+        const km = r.km ? parseInt(r.km).toLocaleString('es-MX') + ' km' : '—';
+        const ts = r.timestamp ? new Date(r.timestamp).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : '';
+        const dateStr = r.fecha ? r.fecha.slice(0,10) : '';
+        const manto = r.manto && r.manto !== 'N/A' && r.manto !== 'N/A - SALIDA' ? `<span class="tl-manto">${r.manto}</span>` : '';
+        li.innerHTML = `
+            <span class="tl-badge ${tipo==='ENTRADA'?'entrada':'salida'}">${tipo==='ENTRADA'?'📥':'📤'} ${tipo}</span>
+            <div class="tl-info">
+                <div class="tl-unit">Unidad ${r.unidad || '—'} ${manto}</div>
+                <div class="tl-route">${r.ruta || '—'}</div>
+            </div>
+            <div class="tl-meta">
+                <div class="tl-km">${km}</div>
+                <div style="font-size:10px; color:var(--ink-light); margin-top:2px;">${dateStr} ${ts}</div>
+            </div>
+        `;
+        li.style.cursor = 'pointer';
+        li.onclick = () => openDetailModal(r);
+        list.appendChild(li);
+    });
+}
+
+// ─── TALLER TABLE ────────────────────────────────────────────────────
+let tallerData = [];
+
+function renderTallerTable() {
+    const rows = getFilteredRows();
+    tallerData = calcUnidadesEnTaller(rows);
+    renderTallerRows(tallerData);
+    document.getElementById('taller-loading').style.display = 'none';
+    document.getElementById('taller-table').style.display = 'table';
+}
+
+function renderTallerRows(data) {
+    const tbody = document.getElementById('taller-body');
+    const empty = document.getElementById('taller-empty');
+    tbody.innerHTML = '';
+    if (data.length === 0) { empty.style.display = 'block'; document.getElementById('taller-table').style.display = 'none'; return; }
+    empty.style.display = 'none'; document.getElementById('taller-table').style.display = 'table';
+
+    const now = Date.now();
+    data.forEach(r => {
+        const tr = document.createElement('tr');
+        const km = r.km ? parseInt(r.km).toLocaleString('es-MX') : '—';
+        const manto = r.manto && r.manto !== 'N/A' ? r.manto : '—';
+        const ms = r.timestamp ? now - r.timestamp : 0;
+        const hrs = ms ? Math.floor(ms / 3600000) : null;
+        const tiempoStr = hrs !== null ? (hrs < 1 ? '< 1 h' : hrs + ' h') : '—';
+        const urgency = hrs && hrs > 24 ? 'badge-red' : hrs && hrs > 8 ? 'badge-orange' : 'badge-green';
+        const mantoColor = manto !== '—' ? (manto === 'CORRECTIVO' ? 'badge-red' : 'badge-blue') : '';
+
+        tr.innerHTML = `
+            <td><strong>${r.unidad || '—'}</strong></td>
+            <td style="font-size:11px;">${r.ruta || '—'}</td>
+            <td style="font-family:var(--jm); font-size:12px;">${km}</td>
+            <td><span class="badge ${mantoColor}">${manto}</span></td>
+            <td><span class="badge ${urgency}">${tiempoStr}</span></td>
+        `;
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => openDetailModal(r);
+        tbody.appendChild(tr);
+    });
+}
+
+window.filterTallerTable = function() {
+    const q = document.getElementById('tallerSearch').value.toLowerCase();
+    const filtered = q ? tallerData.filter(r => (r.unidad||'').toLowerCase().includes(q) || (r.ruta||'').toLowerCase().includes(q)) : tallerData;
+    renderTallerRows(filtered);
+};
+
+// ─── SERVICIOS TABLE ─────────────────────────────────────────────────
+let serviciosData = [];
+
+function renderServiciosTable() {
+    serviciosData = allFirebaseDocs;
+    renderServiciosRows(serviciosData);
+    document.getElementById('servicios-loading').style.display = 'none';
+}
+
+function renderServiciosRows(data) {
+    const tbody = document.getElementById('servicios-body');
+    const empty = document.getElementById('servicios-empty');
+    tbody.innerHTML = '';
+    document.getElementById('servicios-table').style.display = 'table';
+
+    if (data.length === 0) { empty.style.display = 'block'; document.getElementById('servicios-table').style.display = 'none'; return; }
+    empty.style.display = 'none';
+
+    data.slice(0, 50).forEach(doc => {
+        const tr = document.createElement('tr');
+        const estatus = doc.estatus || 'COMPLETADO';
+        const badgeClass = estatus === 'PROGRAMADO' ? 'badge-orange' : 'badge-green';
+        const badgeLabel = estatus === 'PROGRAMADO' ? '⏳ Prog.' : '✅ OK';
+        const grupo = doc.grupo || '—';
+        const grupoColor = grupo.startsWith('M') ? 'badge-blue' : grupo === 'Correctivo' || grupo === 'Personalizado (Correctivo)' ? 'badge-red' : '';
+        tr.innerHTML = `
+            <td><strong>${doc.economico || '—'}</strong></td>
+            <td style="font-size:11px;">${doc.fecha || '—'}</td>
+            <td><span class="badge ${grupoColor}">${grupo}</span></td>
+            <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+            <td><a href="https://dantesotomayor17-stack.github.io/gestion-servicios-ego/?ver=${doc.id}" target="_blank" style="color:var(--ego-blue); font-size:11px; font-weight:700; text-decoration:none;">Ver →</a></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+window.filterServiciosTable = function() {
+    const q = document.getElementById('serviciosSearch').value.toLowerCase();
+    const filtered = q ? serviciosData.filter(d => (d.economico||'').toLowerCase().includes(q)) : serviciosData;
+    renderServiciosRows(filtered);
+};
+
+// ─── MANTO CHART ────────────────────────────────────────────────────
+const CHART_COLORS = {
+    'M1': '#10c86f', 'M2': '#1a73e8', 'M3': '#8b5cf6',
+    'M4': '#f59e0b', 'M5': '#ef4444', 'M6': '#14b8a6', 'M7': '#d946ef',
+    'Correctivo': '#ff6d01', 'Personalizado': '#9ca3af', 'default': '#6b7280'
+};
+
+function renderMantoChart() {
+    const container = document.getElementById('manto-chart');
+    // Count from sheets (mantos de entradas)
+    const rows = getFilteredRows().filter(r => r.movimiento === 'ENTRADA' && r.manto && r.manto !== 'N/A' && r.manto !== 'N/A - SALIDA');
+    const counts = {};
+    rows.forEach(r => { counts[r.manto] = (counts[r.manto] || 0) + 1; });
+    // Also count from firebase
+    allFirebaseDocs.forEach(d => { const g = d.grupo || 'Personalizado'; counts[g] = (counts[g] || 0) + 1; });
+
+    const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+    const max = sorted.length ? sorted[0][1] : 1;
+
+    if (sorted.length === 0) { container.innerHTML = '<div class="empty"><div class="empty-icon">📊</div>Sin datos de mantenimiento.</div>'; return; }
+
+    container.innerHTML = sorted.map(([label, count]) => {
+        const pct = Math.round((count / max) * 100);
+        const color = CHART_COLORS[label] || CHART_COLORS['default'];
+        return `
+        <div class="chart-row">
+            <span class="chart-label">${label}</span>
+            <div class="chart-track">
+                <div class="chart-fill" style="width:${pct}%; background:${color};">
+                    ${pct > 20 ? count : ''}
+                </div>
+            </div>
+            <span class="chart-count">${count}</span>
+        </div>`;
+    }).join('');
+}
+
+// ─── MODAL ──────────────────────────────────────────────────────────
+window.openDetailModal = function(r) {
+    const tipo = (r.movimiento || 'ENTRADA').toUpperCase();
+    document.getElementById('modal-title').textContent = `Unidad ${r.unidad || '—'} — ${tipo}`;
+    const km = r.km ? parseInt(r.km).toLocaleString('es-MX') : '—';
+    const fecha = r.fecha ? r.fecha.slice(0,10) : '—';
+    const rows = [
+        ['Ruta', r.ruta || '—'],
+        ['Kilometraje', km + ' km'],
+        ['Mantenimiento', r.manto || '—'],
+        ['Fecha', fecha],
+        ['Comentarios', r.comentarios || '—'],
+        ['Observaciones', r.obsEsteticas || '—'],
+    ];
+    document.getElementById('modal-body').innerHTML = rows.map(([l,v]) => `
+        <div class="modal-row">
+            <div class="modal-label">${l}</div>
+            <div class="modal-val">${v}</div>
+        </div>
+    `).join('') + (r.fotoLicencia ? `<div class="modal-row"><div class="modal-label">Foto Licencia</div><a href="${r.fotoLicencia}" target="_blank" style="color:var(--ego-blue); font-size:12px; font-weight:600;">Ver foto →</a></div>` : '');
+    document.getElementById('modalOverlay').classList.add('open');
+};
+window.closeModal = function() { document.getElementById('modalOverlay').classList.remove('open'); };
+document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target === document.getElementById('modalOverlay')) closeModal(); });
+
+// ─── MOCK DATA (fallback when Sheets not configured) ─────────────────
+function getMockSheetData() {
+    const today = new Date().toISOString().slice(0,10);
+    const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+    return [
+        { unidad:'3386', ruta:'CIENEGA DE FLORES', movimiento:'ENTRADA', km:'145230', manto:'M1', fecha:today+'T08:10:00', timestamp: Date.now()-7200000, comentarios:'Sin novedad', obsEsteticas:'' },
+        { unidad:'6070', ruta:'AEROPUERTO Y GRIEGA', movimiento:'ENTRADA', km:'88400', manto:'M2', fecha:today+'T09:30:00', timestamp: Date.now()-5000000, comentarios:'Cambio de aceite', obsEsteticas:'Rayón lateral derecho' },
+        { unidad:'6070', ruta:'AEROPUERTO Y GRIEGA', movimiento:'SALIDA', km:'88402', manto:'N/A - SALIDA', fecha:today+'T14:00:00', timestamp: Date.now()-2000000, comentarios:'', obsEsteticas:'' },
+        { unidad:'3240', ruta:'RUTA 39', movimiento:'ENTRADA', km:'201100', manto:'CORRECTIVO', fecha:today+'T10:15:00', timestamp: Date.now()-4000000, comentarios:'Falla en motor', obsEsteticas:'Parabrisas roto' },
+        { unidad:'3329', ruta:'RUTA 13', movimiento:'ENTRADA', km:'176500', manto:'M3', fecha:today+'T07:45:00', timestamp: Date.now()-8000000, comentarios:'', obsEsteticas:'' },
+        { unidad:'6003', ruta:'ALIANZA REAL', movimiento:'ENTRADA', km:'96200', manto:'M1', fecha:yesterday+'T08:00:00', timestamp: Date.now()-86400000*1.5, comentarios:'Revisión general', obsEsteticas:'' },
+        { unidad:'6003', ruta:'ALIANZA REAL', movimiento:'SALIDA', km:'96201', manto:'N/A - SALIDA', fecha:yesterday+'T16:00:00', timestamp: Date.now()-86400000*1.2, comentarios:'', obsEsteticas:'' },
+        { unidad:'3263', ruta:'RUTA 1', movimiento:'ENTRADA', km:'312000', manto:'M5', fecha:yesterday+'T09:20:00', timestamp: Date.now()-86400000*1.4, comentarios:'Revisión semestral', obsEsteticas:'' },
+        { unidad:'7003', ruta:'Nuevas Unidades', movimiento:'ENTRADA', km:'1200', manto:'M7', fecha:today+'T11:00:00', timestamp: Date.now()-3000000, comentarios:'Unidad nueva, primer servicio mayor', obsEsteticas:'' },
+    ];
+}
+
+// ─── SET DEFAULT DATE ────────────────────────────────────────────────
+document.getElementById('filterDate').value = todayStr();
+filterDate = todayStr();
+
+// ─── BOOT ────────────────────────────────────────────────────────────
+listenFirebase();
+fetchSheetsData();
+// Refresh Sheets every 2 minutes
+setInterval(fetchSheetsData, 120000);
+</script>
+
+<!-- INSTRUCTIONS BANNER (shown when Sheets is offline) -->
+<div id="instructions-banner" style="display:none; max-width:1380px; margin:0 auto 30px; padding:0 24px;">
+    <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:10px; padding:16px 20px; font-size:13px; color:#856404;">
+        <strong>📌 Para conectar Google Sheets:</strong> Agrega esta función en tu Apps Script junto a las demás (el <code>doPost</code>):<br><br>
+        <code style="background:#fff; padding:4px 8px; border-radius:4px; font-size:12px; display:inline-block; margin-top:4px;">
+            function doGet(e) { if(e.parameter.action === 'getDashboard') { /* leer hoja y devolver JSON */ } }
+        </code><br><br>
+        Ver instrucciones completas abajo o contacta al administrador. Mientras tanto, el dashboard usa datos de <strong>demostración</strong>.
+    </div>
+</div>
+
+<script>
+// Show instructions if sheets fails (check after 3 seconds)
+setTimeout(() => {
+    const status = document.getElementById('sheets-status');
+    if (status && status.classList.contains('status-err')) {
+        document.getElementById('instructions-banner').style.display = 'block';
+    }
+}, 3000);
+</script>
+
+</body>
+</html>
